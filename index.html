@@ -16,7 +16,7 @@ nav{display:flex;gap:4px;margin-left:auto}
 nav button{background:none;border:1px solid var(--line);color:var(--mute);padding:8px 16px;border-radius:6px;font:inherit;cursor:pointer}
 nav button.on{background:var(--amber);color:#1a1200;border-color:var(--amber);font-weight:700}
 .note{font-size:12px;color:var(--mute);padding:6px 16px}
-main{padding:16px;max-width:1150px;margin:0 auto}
+main{padding:12px;transform-origin:0 0}
 section{display:none}section.on{display:block}
 h2{font-size:15px;margin:0 0 10px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}
@@ -50,9 +50,9 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
 .banks{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
 .bank{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto}
 .bank h3{font-size:13px;margin:0 0 8px;display:flex;justify-content:space-between;color:var(--mute);font-weight:400}
-.faders{display:flex;gap:6px;min-width:max-content}
-.f{width:54px;text-align:center}
-.f .lab{font-size:11px;color:var(--mute);height:42px;line-height:1.25;overflow:hidden}
+.faders{display:flex;gap:6px;width:100%;min-width:max-content}
+.f{flex:1 0 54px;text-align:center}
+.f .lab{word-break:break-all;font-size:11px;color:var(--mute);height:42px;line-height:1.25;overflow:hidden}
 .f .lab b{color:var(--ink);font-size:14px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:3px;border:1px solid #fff6}
 .track{position:relative;height:150px;width:14px;margin:0 auto;background:#0d0f14;border:1px solid var(--line);border-radius:7px;cursor:pointer}
@@ -68,6 +68,8 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
 #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
 #login .card{width:min(360px,100%)}
 #login input{width:170px}
+.lit{display:block;width:8px;height:8px;border-radius:50%;background:#46d68c;box-shadow:0 0 6px #46d68c;margin:5px auto 0;opacity:0}
+.zb{background:none;border:0;color:var(--ink);font:inherit;font-size:16px;cursor:pointer;padding:0 6px}
 </style>
 </head>
 <body>
@@ -75,6 +77,7 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
   <h1>舞台照明シミュレーター</h1>
   <span class="lock"><i></i><span id="lkt">未接続</span></span>
   <nav id="nav"><button class="on" data-t="stage">舞台</button><button data-t="fader">フェーダー</button><button data-t="setup">照明設定</button></nav>
+  <span class="lock"><button class="zb" id="zo">−</button><span id="zv">100%</span><button class="zb" id="zi">＋</button></span>
   <button class="btn sub" id="lout" style="display:none">ログアウト</button>
 </header>
 <div class="note" id="stat"></div>
@@ -105,12 +108,12 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
   <div class="console" id="cons">
     <div class="top">
       <div class="banks">
-        <div class="bank"><h3><span>プリセットA（上段）</span><span>↑が100%</span></h3><div class="faders" id="bankA"></div></div>
         <div class="bank"><h3><span>プリセットB（下段）</span><span>↑が0%・↓が100%</span></h3><div class="faders" id="bankB"></div></div>
+        <div class="bank"><h3><span>プリセットA（上段）</span><span>↑が100%</span></h3><div class="faders" id="bankA"></div></div>
       </div>
       <div class="bank masters"><h3><span>マスター</span></h3><div class="faders" id="mst"></div></div>
     </div>
-    <div class="bank"><h3><span>サブマスター（10本）</span><span>「登録」でプリセットの状態を保存</span></h3><div class="faders" id="subs"></div></div>
+    <div class="bank"><h3><span id="subt">サブマスター（10本）</span><span>「登録」でプリセットの状態を保存</span></h3><div class="faders" id="subs"></div></div>
   </div>
 </section>
 
@@ -133,6 +136,7 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
     </div>
     <div class="card"><h2>その他</h2>
       <div class="row"><label>ピンスポ</label><input type="number" value="1"><span class="tag">台</span></div>
+      <div class="row"><label>サブマスター</label><input type="number" id="nsub" min="1" max="30" value="10"><span class="tag">本</span></div>
     </div>
     <div class="card" style="grid-column:1/-1"><h2>プリセットフェーダー番号の割り当て</h2>
       <div class="row"><button class="btn sub" id="rst">初期配置に戻す</button><span class="tag">灯ごとにプルダウンで番号を選びます。同じ番号は1本のフェーダーにまとまります</span></div>
@@ -153,7 +157,7 @@ const $=s=>document.querySelector(s),el=id=>document.getElementById(id),SC='mix-
 const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const CN='①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱';
 const FT={77:'#7fc4ff',72:'#1f3dff',63:'#16c8b0',22:'#ff3b30',59:'#2dd36f',40:'#ffe45c',78:'#9fd0ff',35:'#ff8c1a'};
-const cfg={nb:3,white:3,blue:3,tan:[1,2,0],num:{}};
+const cfg={nb:3,white:3,blue:3,tan:[1,2,0],num:{},subN:10};
 const fx={},A={},B={},M={a:1,b:0},BY=[170,120,70],PY=[375,335,295],GY=[355,320,290];
 const PAL=['#ffffff','#ffd9a0','#ff5a4d','#4aa3ff','#46d68c','#c77dff'];
 const NO=[...Array(60)].map((_,i)=>`<option>${i+1}</option>`).join('');
@@ -166,18 +170,18 @@ function mkItems(){
   H('l','LHL',[72,59,22,40]);H('u','UHL',[77,72,63,22]);
   for(let b=0;b<cfg.nb;b++){
     const W=[...Array(cfg.white)].map((_,j)=>({k:`gw${b}_${j}`,t:'g',b,f:0,sn:'地白',cat:`地白<br>${b+1}-${j+1}`}));
-    const L=[...Array(cfg.blue)].map((_,j)=>({k:`gb${b}_${j}`,t:'g',b,f:77,sh:`gb${b}`,sn:'地青',cat:`地青<br>${b+1}-${j+1}`}));
-    const s=[];while(W.length||L.length){if(W.length)s.push(W.shift());if(L.length)s.push(L.shift())}
-    s.forEach((o,i)=>{o.x=110+(i+.5)*580/s.length;it.push(o)});
+    const L=[...Array(cfg.blue)].map((_,j)=>({k:`gb${b}_${j}`,t:'g',b,f:77,sn:'地青',cat:`地青<br>${b+1}-${j+1}`}));
+    const Wc=[...W],Lc=[...L],s=[];while(W.length||L.length){if(W.length)s.push(W.shift());if(L.length)s.push(L.shift())}
+    s.forEach((o,i)=>{o.x=110+(i+.5)*580/s.length});it.push(...Wc,...Lc);
   }
-  [['下手',140],['中',400],['上手',660]].forEach(([z,x],zi)=>[78,35].forEach(f=>it.push({k:`c${zi}_${f}`,t:'c',x,f,sn:'CL'+z,cat:`CL${z}<br>#${f}`})));
-  [['下手',200],['上手',600]].forEach(([z,x],zi)=>[78,35].forEach(f=>it.push({k:`f${zi}_${f}`,t:'f',x,f,sn:'FR'+z,cat:`FR${z}<br>#${f}`})));
+  [['下手',140],['中',400],['上手',660]].forEach(([z,x],zi)=>[0,78,35].forEach(f=>it.push({k:`c${zi}_${f}`,t:'c',x,f,sn:'CL'+z,cat:`CL${z}<br>${f?'#'+f:'白'}`})));
+  [['下手',200],['上手',600]].forEach(([z,x],zi)=>[0,78,35].forEach(f=>it.push({k:`f${zi}_${f}`,t:'f',x,f,sn:'FR'+z,cat:`FR${z}<br>${f?'#'+f:'白'}`})));
   let n=0;
   for(let b=0;b<cfg.nb;b++)for(let j=0;j<cfg.tan[b];j++){
     const k=`s${b}_${j}`,nm='Sus'+CN[n++];fx[k]=fx[k]||{col:'#ffffff',ax:0,ay:0,sz:50};
     it.push({k,t:'s',b,j,lx:Math.round(800*(j+1)/(cfg.tan[b]+1)),ly:BY[b]+10,sn:nm,cat:nm});
   }
-  ssList.forEach((s,i)=>it.push({k:'ss'+s.id,t:'x',s,sn:'SS'+CN[i],cat:'SS'+CN[i]}));
+  ssList.forEach(s=>it.push({k:'ss'+s.id,t:'x',s,get sn(){return ssName(s)},get cat(){return ssName(s)}}));
   return it;
 }
 function slots(){const m={};its.forEach(i=>(m[cfg.num[i.k]]=m[cfg.num[i.k]]||[]).push(i));
@@ -205,7 +209,7 @@ function drawStage(){
 
 function fader(host,store,key,cb,label,o={}){
   const w=document.createElement('div');w.className='f';
-  w.innerHTML=`<div class="lab">${label}</div><div class="track"><div class="fill"></div><div class="cap"></div></div><div class="val"></div>`+(o.reg?'<button class="reg">登録</button>':'');
+  w.innerHTML=`<div class="lab">${label}</div><div class="track"><div class="fill"></div><div class="cap"></div></div><div class="val"></div>`+(o.dot?'<i class="lit"></i>':'')+(o.reg?'<button class="reg">登録</button>':'');
   host.appendChild(w);
   const t=w.querySelector('.track'),fl=w.querySelector('.fill'),cp=w.querySelector('.cap'),v=w.querySelector('.val');
   const set=(x,u,q)=>{x=cl(x);store[key]=x;fl.style[o.inv?'top':'bottom']=0;fl.style.height=x*100+'%';cp.style.bottom=(o.inv?1-x:x)*100+'%';v.textContent=Math.round(x*100);if(!q)cb();if(u&&o.path)push(o.path,+x.toFixed(3))};
@@ -213,14 +217,15 @@ function fader(host,store,key,cb,label,o={}){
   t.addEventListener('pointerdown',e=>{if(!HAS)return;t.setPointerCapture(e.pointerId);mv(e);t.onpointermove=mv});
   t.addEventListener('pointerup',()=>t.onpointermove=null);
   set(store[key]||0,0,1);FD.push({v:()=>set(store[key]||0,0,1)});
+  if(o.dot)LD.push({d:w.querySelector('.lit'),...o.dot});
   if(o.reg)w.querySelector('.reg').onclick=()=>{if(HAS)o.reg()};
 }
-function buildFaders(){FD.length=0;
+function buildFaders(){FD.length=0;LD.length=0;el('subt').textContent=`サブマスター（${cfg.subN}本）`;
   ['bankA','bankB','mst','subs'].forEach(i=>el(i).innerHTML='');
-  slots().forEach(s=>{fader(el('bankA'),A,s.n,render,lab(s),{path:'live/A/'+s.n});fader(el('bankB'),B,s.n,render,lab(s),{path:'live/B/'+s.n})});
+  slots().forEach(s=>{fader(el('bankA'),A,s.n,render,lab(s),{path:'live/A/'+s.n,dot:{s:A,k:s.n,m:'a'}});fader(el('bankB'),B,s.n,render,lab(s),{path:'live/B/'+s.n,dot:{s:B,k:s.n,m:'b'}})});
   fader(el('mst'),M,'a',render,'<b>A</b><br>マスター<br>↑100%',{path:'live/M/a'});
   fader(el('mst'),M,'b',render,'<b>B</b><br>マスター<br>↓100%',{inv:1,path:'live/M/b'});
-  for(let i=1;i<=10;i++)fader(el('subs'),S,i,render,`<b>SM${i}</b><br>${SUB[i]?'登録済':'未登録'}`,{path:'live/S/'+i,reg:()=>{SUB[i]=snap();push('live/SUB/'+i,SUB[i]);buildFaders();render()}});
+  for(let i=1;i<=cfg.subN;i++)fader(el('subs'),S,i,render,`<b>SM${i}</b><br>${SUB[i]?'登録済':'未登録'}`,{path:'live/S/'+i,dot:{s:S,k:i},reg:()=>{SUB[i]=snap();push('live/SUB/'+i,SUB[i]);buildFaders();render()}});
 }
 
 function pal(host,cur,cb){
@@ -242,13 +247,15 @@ function buildSettings(){
     d.querySelectorAll('input').forEach(i=>i.oninput=()=>{f[i.dataset.p]=+i.value;render()});tp.appendChild(d)});
   const sl=el('ssList');sl.innerHTML='';
   its.filter(i=>i.t=='x').forEach(c=>{const s=c.s,r=document.createElement('div');r.className='row';
-    r.innerHTML=`<label>${c.sn}</label><select><option value="0">下手</option><option value="1">上手</option></select>`;
-    const sel=r.querySelector('select');sel.value=s.side;sel.onchange=()=>{s.side=+sel.value;buildSettings();render()};
+    r.innerHTML=`<label>${c.sn}</label><select><option value="0">下手</option><option value="1">上手</option></select><input type="text" placeholder="名前（空欄で自動）" style="width:120px" value="${(s.name||'').replace(/"/g,'&quot;')}">`;
+    const sel=r.querySelector('select');sel.value=s.side;sel.onchange=()=>{s.side=+sel.value;buildFaders();buildSettings();render()};
+    r.querySelector('input').oninput=e=>{s.name=e.target.value;buildFaders();render()};
     const p=document.createElement('span');p.className='row';p.style.margin=0;pal(p,s.col,v=>{s.col=v;render()});r.appendChild(p);
     const x=document.createElement('button');x.className='btn sub';x.textContent='削除';x.onclick=()=>{ssList.splice(ssList.indexOf(s),1);build()};r.appendChild(x);sl.appendChild(r);
     const d=document.createElement('div');d.className='card';
     d.innerHTML=`<b>${c.sn}（${s.side?'上手':'下手'}）</b><div class="r">位置<input type="range" min="0" max="100" value="${s.pos*100}" data-p="pos"></div><div class="r">向き<input type="range" min="-50" max="50" value="${s.ang}" data-p="ang"></div><div class="r">幅<input type="range" min="8" max="50" value="${s.sz}" data-p="sz"></div>`;
-    d.querySelectorAll('input').forEach(i=>i.oninput=()=>{s[i.dataset.p]=i.dataset.p=='pos'?i.value/100:+i.value;render()});tp.appendChild(d)});
+    d.querySelectorAll('input').forEach(i=>i.oninput=()=>{s[i.dataset.p]=i.dataset.p=='pos'?i.value/100:+i.value;render()});
+    d.querySelectorAll('input').forEach(i=>i.onchange=()=>{buildFaders();buildSettings();render()});tp.appendChild(d)});
   if(!tp.children.length)tp.innerHTML='<div class="tag">Susがありません。照明設定で個数を増やしてください。</div>';
 }
 function build(){
@@ -270,6 +277,7 @@ function render(){
     else{e.setAttribute('fill',c);e.setAttribute('opacity',L*OP[i.t]);
       if(i.t=='g'){const m=el('m_'+i.k);m.setAttribute('fill',c);m.setAttribute('opacity',.35+L*.65)}}
   });
+  LD.forEach(x=>x.d.style.opacity=((x.s[x.k]||0)*(x.m?M[x.m]:1)>.01)?1:0);
   saveCfgMaybe();
 }
 
@@ -278,6 +286,7 @@ document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t+'-s'));tab=b.dataset.t;if(tab=='fader')takeLock();else releaseLock();showLock()});
 document.querySelectorAll('#nb button').forEach((b,i)=>b.onclick=()=>{
   document.querySelectorAll('#nb button').forEach(x=>x.classList.remove('on'));b.classList.add('on');cfg.nb=i+1;build()});
+el('nsub').oninput=e=>{cfg.subN=cl(+e.target.value||1,1,30);buildFaders();render()};
 el('nw').oninput=e=>{cfg.white=cl(+e.target.value||0,0,6);build()};
 el('nbl').oninput=e=>{cfg.blue=cl(+e.target.value||0,0,6);build()};
 [0,1,2].forEach(b=>{const r=document.createElement('div');r.className='row';
@@ -298,7 +307,8 @@ const FBC={apiKey:'AIzaSyAD3UQvPLCJagxiALIgw5iL5J-F48I93xI',authDomain:'stage-li
 const LOCAL=FBC.apiKey.startsWith('YOUR'),G='https://www.gstatic.com/firebasejs/10.12.2/';
 const me=Math.random().toString(36).slice(2);
 let HAS=LOCAL,tab='stage',ready=LOCAL,lastCfg='',ct=0,tm=0,off=0,hb=0,rt=0,auth,db,F={};
-const S={},SUB={},FD=[],q={};
+const S={},SUB={},FD=[],LD=[],q={};
+function ssName(s){return (s.name||'').trim()||`SS${s.side?'上':'下'}${s.pos<.34?'奥':s.pos>.66?'前':'中'}`}
 const sj=o=>JSON.stringify(o,(k,v)=>v&&typeof v=='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
 const cfgObj=()=>JSON.parse(JSON.stringify({cfg,fx,ssList,FT}));
 const pl=i=>{const n=cfg.num[i.k];return cl((A[n]||0)*M.a+(B[n]||0)*M.b)};
@@ -310,9 +320,9 @@ const rd=async p=>LOCAL?lsG(p):(await F.get(F.ref(db,p))).val();
 const sNow=()=>Date.now()+off;
 function push(p,v){q[p]=v;if(LOCAL||tm)return;tm=setTimeout(()=>{tm=0;const u={...q};for(const k in q)delete q[k];F.update(F.ref(db),u).catch(console.error)},60)}
 const cpo=(d,sr)=>{for(const k in d)delete d[k];Object.assign(d,sr||{})};
-function loadCfg(v){const c=v.cfg||{};cfg.nb=c.nb||3;cfg.white=c.white??3;cfg.blue=c.blue??3;cfg.tan=[0,1,2].map(i=>(c.tan||[])[i]||0);cfg.num=c.num||{};
+function loadCfg(v){const c=v.cfg||{};cfg.nb=c.nb||3;cfg.white=c.white??3;cfg.blue=c.blue??3;cfg.tan=[0,1,2].map(i=>(c.tan||[])[i]||0);cfg.num=c.num||{};cfg.subN=c.subN||10;
   cpo(fx,v.fx);ssList.length=0;ssList.push(...Object.values(v.ssList||{}));Object.assign(FT,v.FT||{})}
-function syncInputs(){document.querySelectorAll('#nb button').forEach((b,i)=>b.classList.toggle('on',i==cfg.nb-1));el('nw').value=cfg.white;el('nbl').value=cfg.blue;
+function syncInputs(){document.querySelectorAll('#nb button').forEach((b,i)=>b.classList.toggle('on',i==cfg.nb-1));el('nw').value=cfg.white;el('nsub').value=cfg.subN;el('nbl').value=cfg.blue;
   document.querySelectorAll('#tcnt input').forEach((x,i)=>x.value=cfg.tan[i]);document.querySelectorAll('#ftl input').forEach((x,i)=>x.value=FT[Object.keys(FT)[i]])}
 function saveCfgMaybe(){if(!ready)return;const o=cfgObj(),j=sj(o);if(j===lastCfg)return;lastCfg=j;if(LOCAL)return wrt('config',o);clearTimeout(ct);ct=setTimeout(()=>wrt('config',cfgObj()),300)}
 function applyCfg(v){if(!v){lastCfg='';render();return}const prev=lastCfg;loadCfg(v);const j=sj(cfgObj());if(j===prev)return;lastCfg=j;build();syncInputs()}
@@ -359,7 +369,11 @@ async function start(){
 }
 if(LOCAL){const c=lsG('config');if(c)loadCfg(c)}
 build();syncInputs();
-if(LOCAL){A[cfg.num.gw0_0]=.8;A[cfg.num.u0]=.6;A[cfg.num.c1_78]=.7;A[cfg.num.s0_0]=.9;A[cfg.num.ss1]=.8;buildFaders();render()}
+let ZZ=+(lsG('zoom')||1);const ZM=document.querySelector('main');
+function setZoom(z){ZZ=cl(Math.round(z*10)/10,.5,2);ZM.style.transform=`scale(${ZZ})`;ZM.style.width=100/ZZ+'%';el('zv').textContent=Math.round(ZZ*100)+'%';ZM.style.marginBottom=((ZZ-1)*ZM.offsetHeight)+'px';try{localStorage.setItem('sls:zoom',ZZ)}catch(e){}}
+el('zo').onclick=()=>setZoom(ZZ-.1);el('zi').onclick=()=>setZoom(ZZ+.1);
+new ResizeObserver(()=>{ZM.style.marginBottom=((ZZ-1)*ZM.offsetHeight)+'px'}).observe(ZM);
+setZoom(ZZ);
 start();
 </script>
 </body>
