@@ -47,7 +47,8 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
 #tanp input[type=range]{width:100%}
 .console{display:flex;flex-direction:column;gap:12px;touch-action:none;user-select:none}
 .top{display:flex;gap:12px;flex-wrap:wrap}
-.banks{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.banks{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;overflow-x:auto}
+.banks .bank{overflow:visible;min-width:max-content}
 .bank{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto}
 .bank h3{font-size:13px;margin:0 0 8px;display:flex;justify-content:space-between;color:var(--mute);font-weight:400}
 .faders{display:flex;gap:6px;width:100%;min-width:max-content}
@@ -236,25 +237,25 @@ function pal(host,cur,cb){
 function buildSettings(){
   const sus=its.filter(i=>i.t=='s');
   const tl=el('tanList');tl.innerHTML='';
-  sus.forEach(c=>{const r=document.createElement('div');r.className='row';r.innerHTML=`<label>${c.sn}（${c.b+1}サス）</label>`;
+  sus.forEach(c=>{const r=document.createElement('div');r.className='row';r.innerHTML=`<label data-nm="${c.k}" data-m="p">${c.sn}（${c.b+1}サス）</label>`;
     const p=document.createElement('span');p.className='row';p.style.margin=0;pal(p,fx[c.k].col,v=>{fx[c.k].col=v;render()});r.appendChild(p);tl.appendChild(r)});
   const nl=el('numl');nl.innerHTML='';
-  its.forEach(c=>{const d=document.createElement('div');d.innerHTML=`<span>${c.cat.replace('<br>',' ')}</span><select>${NO}</select>`;
+  its.forEach(c=>{const d=document.createElement('div');d.innerHTML=`<span data-nm="${c.k}" data-m="c">${c.cat.replace('<br>',' ')}</span><select>${NO}</select>`;
     const s=d.querySelector('select');s.value=cfg.num[c.k];s.onchange=()=>{cfg.num[c.k]=+s.value;buildFaders();render()};nl.appendChild(d)});
   const tp=el('tanp');tp.innerHTML='';
   sus.forEach(c=>{const f=fx[c.k],d=document.createElement('div');d.className='card';
-    d.innerHTML=`<b>${c.sn}（${c.b+1}サス）</b><div class="r">左右<input type="range" min="-100" max="100" value="${f.ax}" data-p="ax"></div><div class="r">前後<input type="range" min="-60" max="60" value="${f.ay}" data-p="ay"></div><div class="r">大きさ<input type="range" min="15" max="110" value="${f.sz}" data-p="sz"></div>`;
+    d.innerHTML=`<b data-nm="${c.k}" data-m="p">${c.sn}（${c.b+1}サス）</b><div class="r">左右<input type="range" min="-100" max="100" value="${f.ax}" data-k="${c.k}" data-p="ax"></div><div class="r">前後<input type="range" min="-60" max="60" value="${f.ay}" data-k="${c.k}" data-p="ay"></div><div class="r">大きさ<input type="range" min="15" max="110" value="${f.sz}" data-k="${c.k}" data-p="sz"></div>`;
     d.querySelectorAll('input').forEach(i=>i.oninput=()=>{f[i.dataset.p]=+i.value;render()});tp.appendChild(d)});
   const sl=el('ssList');sl.innerHTML='';
   its.filter(i=>i.t=='x').forEach(c=>{const s=c.s,r=document.createElement('div');r.className='row';
-    r.innerHTML=`<label>${c.sn}</label><select><option value="0">下手</option><option value="1">上手</option></select><input type="text" placeholder="名前（空欄で自動）" style="width:120px" value="${(s.name||'').replace(/"/g,'&quot;')}">`;
+    r.innerHTML=`<label data-nm="${c.k}" data-m="s">${c.sn}</label><select><option value="0">下手</option><option value="1">上手</option></select><input type="text" placeholder="名前（空欄で自動）" style="width:120px" value="${(s.name||'').replace(/"/g,'&quot;')}">`;
     const sel=r.querySelector('select');sel.value=s.side;sel.onchange=()=>{s.side=+sel.value;buildFaders();buildSettings();render()};
-    r.querySelector('input').oninput=e=>{s.name=e.target.value;buildFaders();render()};
+    r.querySelector('input').oninput=e=>{s.name=e.target.value;buildFaders();refreshNames();render()};
     const p=document.createElement('span');p.className='row';p.style.margin=0;pal(p,s.col,v=>{s.col=v;render()});r.appendChild(p);
     const x=document.createElement('button');x.className='btn sub';x.textContent='削除';x.onclick=()=>{ssList.splice(ssList.indexOf(s),1);build()};r.appendChild(x);sl.appendChild(r);
     const d=document.createElement('div');d.className='card';
-    d.innerHTML=`<b>${c.sn}（${s.side?'上手':'下手'}）</b><div class="r">位置<input type="range" min="0" max="100" value="${s.pos*100}" data-p="pos"></div><div class="r">向き<input type="range" min="-50" max="50" value="${s.ang}" data-p="ang"></div><div class="r">幅<input type="range" min="8" max="50" value="${s.sz}" data-p="sz"></div>`;
-    d.querySelectorAll('input').forEach(i=>i.oninput=()=>{s[i.dataset.p]=i.dataset.p=='pos'?i.value/100:+i.value;render()});
+    d.innerHTML=`<b data-nm="${c.k}" data-m="p">${c.sn}（${s.side?'上手':'下手'}）</b><div class="r">位置<input type="range" min="0" max="100" value="${s.pos*100}" data-k="${c.k}" data-p="pos"></div><div class="r">向き<input type="range" min="-50" max="50" value="${s.ang}" data-k="${c.k}" data-p="ang"></div><div class="r">幅<input type="range" min="8" max="50" value="${s.sz}" data-k="${c.k}" data-p="sz"></div>`;
+    d.querySelectorAll('input').forEach(i=>i.oninput=()=>{s[i.dataset.p]=i.dataset.p=='pos'?i.value/100:+i.value;refreshNames();render()});
     d.querySelectorAll('input').forEach(i=>i.onchange=()=>{buildFaders();buildSettings();render()});tp.appendChild(d)});
   if(!tp.children.length)tp.innerHTML='<div class="tag">Susがありません。照明設定で個数を増やしてください。</div>';
 }
@@ -321,11 +322,18 @@ const sNow=()=>Date.now()+off;
 function push(p,v){q[p]=v;if(LOCAL||tm)return;tm=setTimeout(()=>{tm=0;const u={...q};for(const k in q)delete q[k];F.update(F.ref(db),u).catch(console.error)},60)}
 const cpo=(d,sr)=>{for(const k in d)delete d[k];Object.assign(d,sr||{})};
 function loadCfg(v){const c=v.cfg||{};cfg.nb=c.nb||3;cfg.white=c.white??3;cfg.blue=c.blue??3;cfg.tan=[0,1,2].map(i=>(c.tan||[])[i]||0);cfg.num=c.num||{};cfg.subN=c.subN||10;
-  cpo(fx,v.fx);ssList.length=0;ssList.push(...Object.values(v.ssList||{}));Object.assign(FT,v.FT||{})}
+  const r=v.fx||{};for(const k in fx)if(!(k in r))delete fx[k];for(const k in r)fx[k]?Object.assign(fx[k],r[k]):fx[k]={...r[k]};
+  const old=[...ssList];ssList.length=0;Object.values(v.ssList||{}).forEach(x=>{const o=old.find(y=>y.id==x.id);if(o){Object.assign(o,x);ssList.push(o)}else ssList.push({...x})});
+  Object.assign(FT,v.FT||{})}
 function syncInputs(){document.querySelectorAll('#nb button').forEach((b,i)=>b.classList.toggle('on',i==cfg.nb-1));el('nw').value=cfg.white;el('nsub').value=cfg.subN;el('nbl').value=cfg.blue;
   document.querySelectorAll('#tcnt input').forEach((x,i)=>x.value=cfg.tan[i]);document.querySelectorAll('#ftl input').forEach((x,i)=>x.value=FT[Object.keys(FT)[i]])}
-function saveCfgMaybe(){if(!ready)return;const o=cfgObj(),j=sj(o);if(j===lastCfg)return;lastCfg=j;if(LOCAL)return wrt('config',o);clearTimeout(ct);ct=setTimeout(()=>wrt('config',cfgObj()),300)}
-function applyCfg(v){if(!v){lastCfg='';render();return}const prev=lastCfg;loadCfg(v);const j=sj(cfgObj());if(j===prev)return;lastCfg=j;build();syncInputs()}
+function saveCfgMaybe(){if(!ready)return;const o=cfgObj(),j=sj(o);if(j===lastCfg)return;lastCfg=j;if(LOCAL)return wrt('config',o);if(!ct)ct=setTimeout(()=>{ct=0;wrt('config',cfgObj())},80)}
+const stSig=()=>sj({cfg,FT,ss:ssList.map(x=>[x.id,x.side,ssName(x)]),fk:Object.keys(fx).sort()});
+function refreshNames(){its.forEach(i=>document.querySelectorAll(`[data-nm="${i.k}"]`).forEach(e=>{const m=e.dataset.m;
+  e.textContent=m=='c'?i.cat.replace('<br>',' '):m=='s'?i.sn:i.t=='x'?`${i.sn}（${i.s.side?'上手':'下手'}）`:`${i.sn}（${i.b+1}サス）`}))}
+function syncPanel(){document.querySelectorAll('#tanp input[data-k]').forEach(i=>{if(i===document.activeElement)return;const k=i.dataset.k,p=i.dataset.p,o=k.startsWith('ss')?ssList.find(x=>'ss'+x.id==k):fx[k];if(o)i.value=p=='pos'?o.pos*100:o[p]})}
+function applyCfg(v){if(!v){lastCfg='';render();return}const prev=lastCfg,ps=stSig();loadCfg(v);const j=sj(cfgObj());if(j===prev)return;lastCfg=j;
+  if(stSig()===ps){syncPanel();render()}else{build();syncInputs()}}
 function applyLive(v){if(HAS&&tab=='fader'&&!LOCAL)return;v=v||{};
   cpo(A,v.A);cpo(B,v.B);cpo(S,v.S);M.a=v.M&&v.M.a!=null?v.M.a:1;M.b=v.M&&v.M.b!=null?v.M.b:0;
   if(sj(v.SUB||{})!==sj(SUB)){cpo(SUB,v.SUB);buildFaders()}else FD.forEach(f=>f.v());
