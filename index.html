@@ -294,7 +294,7 @@ sw.addEventListener('pointermove',e=>{const r=sw.getBoundingClientRect();
   sp.style.background=`radial-gradient(circle 70px at ${e.clientX-r.left}px ${e.clientY-r.top}px,rgba(255,250,225,.85),rgba(255,250,225,.25) 60%,transparent 100%)`});
 
 // ===== Firebase同期（未設定ならローカルモード） =====
-const FBC={apiKey:'YOUR_API_KEY',authDomain:'YOUR_PROJECT.firebaseapp.com',databaseURL:'https://YOUR_PROJECT-default-rtdb.firebaseio.com',projectId:'YOUR_PROJECT',appId:'YOUR_APP_ID'};
+const FBC={apiKey:'BK4qsV5DwSTqmXtt-elElpjd1HZLNnz2jADzd5KdFBa4KZIiV5Q6iPQTCMFcWJ0PM0ysZjne8mwOSDpNQ9S2caU',authDomain:'YOUR_PROJECT.firebaseapp.com',databaseURL:'https://YOUR_PROJECT-default-rtdb.firebaseio.com',projectId:'YOUR_PROJECT',appId:'YOUR_APP_ID'};
 const LOCAL=FBC.apiKey.startsWith('YOUR'),G='https://www.gstatic.com/firebasejs/10.12.2/';
 const me=Math.random().toString(36).slice(2);
 let HAS=LOCAL,tab='stage',ready=LOCAL,lastCfg='',ct=0,tm=0,off=0,hb=0,rt=0,auth,db,F={};
