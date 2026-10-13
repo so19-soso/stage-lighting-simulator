@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>舞台照明シミュレーター（イメージ）</title>
+<title>舞台照明シミュレーター</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#14161c">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#14161c;--panel:#1d2029;--line:#323746;--ink:#e8e6df;--mute:#8d93a5;--amber:#ffb23e;--blue:#4aa3ff}
@@ -66,8 +69,9 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
 .masters .track{height:240px}
 .lock{display:inline-flex;gap:6px;align-items:center;font-size:12px;border:1px solid var(--line);border-radius:20px;padding:4px 10px}
 .lock i{width:8px;height:8px;border-radius:50%;background:#46d68c}
-#login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
-#login .card{width:min(360px,100%)}
+#login,#gate,#vcode{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
+#login .card,#gate .card,#vcode .card{width:min(360px,100%)}
+.view nav,.view .hv{display:none!important}
 #login input{width:170px}
 .lit{display:block;width:8px;height:8px;border-radius:50%;background:#46d68c;box-shadow:0 0 6px #46d68c;margin:5px auto 0;opacity:0}
 .zb{background:none;border:0;color:var(--ink);font:inherit;font-size:16px;cursor:pointer;padding:0 6px}
@@ -83,6 +87,8 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
 </header>
 <div class="note" id="stat"></div>
 <div id="login"><div class="card"><h2>ログイン</h2><div class="row"><label>ID</label><input type="text" id="lid" autocomplete="username"></div><div class="row"><label>パスワード</label><input type="password" id="lpw" autocomplete="current-password"></div><div class="row"><button class="btn" id="lgo">ログイン</button></div><div class="tag" id="lerr"></div></div></div>
+<div id="gate"><div class="card"><h2>設定パスワード</h2><div class="tag" id="gm"></div><div class="row"><input type="password" id="gp"></div><div class="row"><button class="btn" id="gok">OK</button><button class="btn sub" id="gcan">キャンセル</button></div></div></div>
+<div id="vcode"><div class="card"><h2>閲覧コード</h2><div class="tag">操作する人に教えてもらったコードを入れてください</div><div class="row"><input type="text" id="vc"><button class="btn" id="vgo">見る</button></div></div></div>
 <main>
 
 <section id="stage-s" class="on">
@@ -91,7 +97,7 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
     <svg id="stage" viewBox="0 0 800 460"><defs><clipPath id="fc"><polygon points="90,200 710,200 790,420 10,420"/></clipPath><filter id="b28" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="28"/></filter><filter id="b18" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18"/></filter><filter id="b40" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/></filter><filter id="b3" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter></defs>
       <g id="hori"></g>
       <polygon points="90,270 710,270 790,420 10,420" fill="#15130f"/>
-      <g id="lit"></g><g id="beams"></g>
+      <g id="lit"></g><g id="beams"></g><g id="objs"></g>
       <rect x="0" y="0" width="90" height="420" fill="#2a0d12"/><rect x="710" y="0" width="90" height="420" fill="#2a0d12"/><rect x="0" y="0" width="800" height="40" fill="#2a0d12"/>
       <g stroke="#59607a" stroke-width="3"><line x1="40" y1="70" x2="760" y2="70"/><line x1="30" y1="120" x2="770" y2="120"/><line x1="20" y1="170" x2="780" y2="170"/></g>
       <g id="lamps"></g>
@@ -101,7 +107,7 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
     </svg>
     <div id="spot"></div>
   </div>
-  <div id="tanp"></div>
+  <div id="tanp" class="hv"></div><div id="objp" class="hv" style="margin-top:12px"></div>
 </section>
 
 <section id="fader-s">
@@ -143,6 +149,15 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
       <div class="row"><button class="btn sub" id="rst">初期配置に戻す</button><span class="tag">灯ごとにプルダウンで番号を選びます。同じ番号は1本のフェーダーにまとまります</span></div>
       <div class="nums" id="numl"></div>
     </div>
+    <div class="card"><h2>アカウント連携</h2>
+      <div class="row"><input type="text" id="lkc" placeholder="連携コード（例：hall1）" style="width:170px"><button class="btn" id="lkon">連携する</button><button class="btn sub" id="lkoff">解除</button></div>
+      <div class="tag" id="lkst">連携なし：このアカウントだけの舞台です</div>
+      <div class="tag">同じコードを入れたアカウント同士で、舞台と操作卓を共有します。コードを入れなければ、アカウントごとに別の舞台です</div></div>
+    <div class="card"><h2>舞台だけの閲覧サイト</h2>
+      <div class="row"><button class="btn" id="shon">共有を開始</button><button class="btn sub" id="shoff">停止</button></div>
+      <div class="row"><input type="text" id="shurl" readonly style="width:100%"></div>
+      <div class="tag">開始すると、見るだけのURLが出ます。IDが guest で始まるアカウントも、このコードで見られます</div></div>
+    <div class="card"><h2>設定パスワード</h2><div class="row"><button class="btn sub" id="pwchg">パスワードを変更</button></div></div>
     <div class="card"><h2>保存・呼び出し</h2>
       <div class="row"><label>名前</label><input type="text" id="svn" placeholder="例：市民ホール 大ホール"></div>
       <div class="row"><button class="btn" id="sv1">会場設定を保存</button><button class="btn" id="sv2">サブマスターを保存</button></div>
@@ -158,7 +173,7 @@ const $=s=>document.querySelector(s),el=id=>document.getElementById(id),SC='mix-
 const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const CN='①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱';
 const FT={77:'#7fc4ff',72:'#1f3dff',63:'#16c8b0',22:'#ff3b30',59:'#2dd36f',40:'#ffe45c',78:'#9fd0ff',35:'#ff8c1a'};
-const cfg={nb:3,white:3,blue:3,tan:[1,2,0],num:{},subN:10};
+const cfg={nb:3,white:3,blue:3,tan:[1,2,0],num:{},subN:10,share:''};
 const fx={},A={},B={},M={a:1,b:0},BY=[170,120,70],PY=[375,335,295],GY=[355,320,290];
 const PAL=['#ffffff','#ffd9a0','#ff5a4d','#4aa3ff','#46d68c','#c77dff'];
 const NO=[...Array(60)].map((_,i)=>`<option>${i+1}</option>`).join('');
@@ -262,7 +277,7 @@ function buildSettings(){
 function build(){
   its=mkItems();let m=Math.max(0,...Object.values(cfg.num));
   its.forEach(i=>{if(!cfg.num[i.k]){const o=i.sh&&its.find(x=>x.sh==i.sh&&cfg.num[x.k]);cfg.num[i.k]=o?cfg.num[o.k]:++m}});
-  drawStage();buildFaders();buildSettings();render();
+  drawStage();drawObjs();buildFaders();buildSettings();buildObjPanel();render();
 }
 
 function render(){
@@ -278,11 +293,12 @@ function render(){
     else{e.setAttribute('fill',c);e.setAttribute('opacity',L*OP[i.t]);
       if(i.t=='g'){const m=el('m_'+i.k);m.setAttribute('fill',c);m.setAttribute('opacity',.35+L*.65)}}
   });
+  renderObjs();
   LD.forEach(x=>x.d.style.opacity=((x.s[x.k]||0)*(x.m?M[x.m]:1)>.01)?1:0);
   saveCfgMaybe();
 }
 
-document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=async()=>{if(b.dataset.t=='setup'&&!(await gate()))return;
   document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t+'-s'));tab=b.dataset.t;if(tab=='fader')takeLock();else releaseLock();showLock()});
 document.querySelectorAll('#nb button').forEach((b,i)=>b.onclick=()=>{
@@ -298,37 +314,39 @@ Object.keys(FT).forEach(n=>{const d=document.createElement('label');d.className=
 el('ssAdd').onclick=()=>{if(ssList.length>=8)return;ssList.push({id:Math.max(0,...ssList.map(s=>s.id))+1,side:0,pos:.5,ang:0,sz:20,col:'#ffffff'});build()};
 el('rst').onclick=()=>{cfg.num={};build()};
 
-let pin=false;const sw=el('sw'),sp=el('spot');
+let pin=false,pm=null;const sw=el('sw'),sp=el('spot');
 el('pinbtn').onclick=()=>{pin=!pin;el('pinbtn').textContent='ピンスポ：'+(pin?'オン':'オフ');sp.style.opacity=pin?1:0};
-sw.addEventListener('pointermove',e=>{const r=sw.getBoundingClientRect();
+sw.addEventListener('pointermove',e=>{const r=sw.getBoundingClientRect();pm={x:(e.clientX-r.left)/r.width*800,y:(e.clientY-r.top)/r.height*460};if(pin&&objs.length)renderObjs();
   sp.style.background=`radial-gradient(circle 70px at ${e.clientX-r.left}px ${e.clientY-r.top}px,rgba(255,250,225,.85),rgba(255,250,225,.25) 60%,transparent 100%)`});
 
 // ===== Firebase同期（未設定ならローカルモード） =====
-const FBC={apiKey:'AIzaSyAD3UQvPLCJagxiALIgw5iL5J-F48I93xI',authDomain:'stage-lighting-simulator.firebaseapp.com',databaseURL:'https://stage-lighting-simulator-default-rtdb.firebaseio.com',projectId:'stage-lighting-simulator',appId:'1:984683411726:web:70a050d7ac907d2a2c3f5f'};
+const {FBC}=await import('./firebase-config.js').catch(()=>({FBC:{apiKey:'YOUR_API_KEY'}}));
 const LOCAL=FBC.apiKey.startsWith('YOUR'),G='https://www.gstatic.com/firebasejs/10.12.2/';
 const me=Math.random().toString(36).slice(2);
-let HAS=LOCAL,tab='stage',ready=LOCAL,lastCfg='',ct=0,tm=0,off=0,hb=0,rt=0,auth,db,F={};
-const S={},SUB={},FD=[],LD=[],q={};
+let VIEW=!!window.VIEWONLY,room='',uid='',code='',unlocked=false,HAS=LOCAL,tab='stage',ready=LOCAL,lastCfg='',ct=0,tm=0,off=0,hb=0,rt=0,auth,db,F={};
+const S={},SUB={},FD=[],LD=[],q={},objs=[];
+const RB=()=>VIEW?`share/${code}`:`rooms/${room}`,R=p=>F.ref(db,RB()+'/'+p);
 function ssName(s){return (s.name||'').trim()||`SS${s.side?'上':'下'}${s.pos<.34?'奥':s.pos>.66?'前':'中'}`}
 const sj=o=>JSON.stringify(o,(k,v)=>v&&typeof v=='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
-const cfgObj=()=>JSON.parse(JSON.stringify({cfg,fx,ssList,FT}));
+const cfgObj=()=>JSON.parse(JSON.stringify({cfg,fx,ssList,FT,objs}));
 const pl=i=>{const n=cfg.num[i.k];return cl((A[n]||0)*M.a+(B[n]||0)*M.b)};
 const lv=i=>{let v=pl(i);for(const j in SUB){const x=SUB[j]&&SUB[j][i.k];if(x)v=Math.max(v,x*(S[j]||0))}return v};
 const snap=()=>{const o={};its.forEach(i=>{const v=pl(i);if(v>.01)o[i.k]=+v.toFixed(2)});return o};
 const lsG=p=>{try{return JSON.parse(localStorage.getItem('sls:'+p))}catch(e){return null}};
-const wrt=(p,v)=>{if(LOCAL){try{localStorage.setItem('sls:'+p,JSON.stringify(v))}catch(e){}return}return F.set(F.ref(db,p),v).catch(console.error)};
-const rd=async p=>LOCAL?lsG(p):(await F.get(F.ref(db,p))).val();
+const wrt=(p,v)=>{if(LOCAL){try{localStorage.setItem('sls:'+p,JSON.stringify(v))}catch(e){}return}if(VIEW)return;const u={[RB()+'/'+p]:v};if(cfg.share&&p=='config')u['share/'+cfg.share+'/config']=v;return F.update(F.ref(db),u).catch(console.error)};
+const rd=async p=>LOCAL?lsG(p):(await F.get(R(p))).val();
 const sNow=()=>Date.now()+off;
-function push(p,v){q[p]=v;if(LOCAL||tm)return;tm=setTimeout(()=>{tm=0;const u={...q};for(const k in q)delete q[k];F.update(F.ref(db),u).catch(console.error)},60)}
+function push(p,v){q[p]=v;if(LOCAL||VIEW||tm)return;tm=setTimeout(()=>{tm=0;const u={};for(const k in q){u[RB()+'/'+k]=q[k];if(cfg.share)u['share/'+cfg.share+'/'+k]=q[k];delete q[k]}F.update(F.ref(db),u).catch(console.error)},60)}
 const cpo=(d,sr)=>{for(const k in d)delete d[k];Object.assign(d,sr||{})};
-function loadCfg(v){const c=v.cfg||{};cfg.nb=c.nb||3;cfg.white=c.white??3;cfg.blue=c.blue??3;cfg.tan=[0,1,2].map(i=>(c.tan||[])[i]||0);cfg.num=c.num||{};cfg.subN=c.subN||10;
+function loadCfg(v){const c=v.cfg||{};cfg.nb=c.nb||3;cfg.white=c.white??3;cfg.blue=c.blue??3;cfg.tan=[0,1,2].map(i=>(c.tan||[])[i]||0);cfg.num=c.num||{};cfg.subN=c.subN||10;cfg.share=c.share||'';
   const r=v.fx||{};for(const k in fx)if(!(k in r))delete fx[k];for(const k in r)fx[k]?Object.assign(fx[k],r[k]):fx[k]={...r[k]};
   const old=[...ssList];ssList.length=0;Object.values(v.ssList||{}).forEach(x=>{const o=old.find(y=>y.id==x.id);if(o){Object.assign(o,x);ssList.push(o)}else ssList.push({...x})});
-  Object.assign(FT,v.FT||{})}
+  Object.assign(FT,v.FT||{});
+  const oo=[...objs];objs.length=0;Object.values(v.objs||{}).forEach(x=>{const o=oo.find(y=>y.id==x.id);if(o){Object.assign(o,x);objs.push(o)}else objs.push({...x})})}
 function syncInputs(){document.querySelectorAll('#nb button').forEach((b,i)=>b.classList.toggle('on',i==cfg.nb-1));el('nw').value=cfg.white;el('nsub').value=cfg.subN;el('nbl').value=cfg.blue;
-  document.querySelectorAll('#tcnt input').forEach((x,i)=>x.value=cfg.tan[i]);document.querySelectorAll('#ftl input').forEach((x,i)=>x.value=FT[Object.keys(FT)[i]])}
+  document.querySelectorAll('#tcnt input').forEach((x,i)=>x.value=cfg.tan[i]);document.querySelectorAll('#ftl input').forEach((x,i)=>x.value=FT[Object.keys(FT)[i]]);showShare()}
 function saveCfgMaybe(){if(!ready)return;const o=cfgObj(),j=sj(o);if(j===lastCfg)return;lastCfg=j;if(LOCAL)return wrt('config',o);if(!ct)ct=setTimeout(()=>{ct=0;wrt('config',cfgObj())},80)}
-const stSig=()=>sj({cfg,FT,ss:ssList.map(x=>[x.id,x.side,ssName(x)]),fk:Object.keys(fx).sort()});
+const stSig=()=>sj({cfg,FT,ss:ssList.map(x=>[x.id,x.side,ssName(x)]),fk:Object.keys(fx).sort(),ob:objs.map(o=>[o.id,o.kind])});
 function refreshNames(){its.forEach(i=>document.querySelectorAll(`[data-nm="${i.k}"]`).forEach(e=>{const m=e.dataset.m;
   e.textContent=m=='c'?i.cat.replace('<br>',' '):m=='s'?i.sn:i.t=='x'?`${i.sn}（${i.s.side?'上手':'下手'}）`:`${i.sn}（${i.b+1}サス）`}))}
 function syncPanel(){document.querySelectorAll('#tanp input[data-k]').forEach(i=>{if(i===document.activeElement)return;const k=i.dataset.k,p=i.dataset.p,o=k.startsWith('ss')?ssList.find(x=>'ss'+x.id==k):fx[k];if(o)i.value=p=='pos'?o.pos*100:o[p]})}
@@ -339,15 +357,15 @@ function applyLive(v){if(HAS&&tab=='fader'&&!LOCAL)return;v=v||{};
   if(sj(v.SUB||{})!==sj(SUB)){cpo(SUB,v.SUB);buildFaders()}else FD.forEach(f=>f.v());
   render()}
 function showLock(){const bad=tab=='fader'&&!HAS;el('lockmsg').style.display=bad?'block':'none';el('cons').style.display=bad?'none':'';
-  el('lkt').textContent=LOCAL?'ローカルモード':(tab=='fader'&&HAS?'操作卓：この端末が操作中':bad?'他の端末が操作卓を使用中':'接続中')}
+  el('lkt').textContent=LOCAL?'ローカルモード':VIEW?'閲覧のみ':(tab=='fader'&&HAS?'操作卓：この端末が操作中':bad?'他の端末が操作卓を使用中':'接続中')}
 async function takeLock(){
   if(LOCAL){HAS=true;return}
-  const lr=F.ref(db,'lock'),claim=c=>(!c||c.id===me||sNow()-c.ts>12000)?{id:me,ts:sNow()}:undefined;
+  const lr=R('lock'),claim=c=>(!c||c.id===me||sNow()-c.ts>12000)?{id:me,ts:sNow()}:undefined;
   const r=await F.runTransaction(lr,claim);HAS=r.committed;showLock();clearInterval(hb);clearTimeout(rt);
   if(HAS){F.onDisconnect(lr).remove();hb=setInterval(async()=>{const x=await F.runTransaction(lr,claim);if(!x.committed){HAS=false;showLock();takeLock()}},4000)}
   else rt=setTimeout(()=>{if(tab=='fader')takeLock()},4000)}
-function releaseLock(){clearInterval(hb);clearTimeout(rt);if(HAS&&!LOCAL)F.remove(F.ref(db,'lock'));HAS=LOCAL}
-addEventListener('pagehide',()=>{if(HAS&&!LOCAL)F.remove(F.ref(db,'lock'))});
+function releaseLock(){clearInterval(hb);clearTimeout(rt);if(HAS&&!LOCAL)F.remove(R('lock'));HAS=LOCAL}
+addEventListener('pagehide',()=>{if(HAS&&!LOCAL)F.remove(R('lock'))});
 // 保存・呼び出し
 const sn=()=>(el('svn').value||'').trim().replace(/[.$#\[\]\/]/g,'_');
 async function svSet(k,n,val){const o=(await rd('saves/'+k))||{};if(val===null)delete o[n];else o[n]=val;await wrt('saves/'+k,Object.keys(o).length?o:null)}
@@ -361,7 +379,7 @@ el('ld').onclick=async()=>{const [k,n]=el('svl').value.split('|');if(!k)return;c
 async function start(){
   el('stat').textContent=LOCAL?'Firebase未設定のため、この端末だけで動くローカルモードです（README参照）':'';
   showLock();
-  if(LOCAL){refList();return}
+  if(LOCAL){el('lkst').textContent='Firebase設定後に使えます';refList();return}
   const [a,b,c]=await Promise.all(['firebase-app.js','firebase-auth.js','firebase-database.js'].map(f=>import(G+f)));
   const app=a.initializeApp(FBC);auth=b.getAuth(app);db=c.getDatabase(app);F={...b,...c};
   F.onValue(F.ref(db,'.info/serverTimeOffset'),x=>off=x.val()||0);
@@ -371,10 +389,93 @@ async function start(){
       el('lerr').textContent=(m[e.code]||'ログインできません')+'（'+e.code+'）'}};
   el('lpw').onkeydown=e=>{if(e.key=='Enter')el('lgo').click()};
   el('lout').onclick=async()=>{releaseLock();await F.signOut(auth);location.reload()};
+  const goView=c=>{VIEW=true;document.body.classList.add('view');code=c;try{localStorage.setItem('sls:vcode',JSON.stringify(c))}catch(e){}
+    el('vcode').style.display='none';showLock();
+    F.onValue(R('config'),x=>applyCfg(x.val()),()=>{});F.onValue(R('live'),x=>applyLive(x.val()),()=>{})};
+  const askCode=()=>{VIEW=true;document.body.classList.add('view');const c0=new URLSearchParams(location.search).get('c')||lsG('vcode');if(c0)return goView(c0);
+    el('vcode').style.display='flex';el('vgo').onclick=()=>{const c=el('vc').value.trim();if(c)goView(c)}};
+  if(VIEW){el('lout').style.display='none';askCode();return}
   let sub=0;
-  F.onAuthStateChanged(auth,u=>{el('login').style.display=u?'none':'flex';el('lout').style.display=u?'':'none';
-    if(u&&!sub){sub=1;F.onValue(F.ref(db,'config'),x=>{ready=true;applyCfg(x.val())},()=>{});F.onValue(F.ref(db,'live'),x=>applyLive(x.val()),()=>{});refList()}});
+  F.onAuthStateChanged(auth,async u=>{el('login').style.display=u?'none':'flex';el('lout').style.display=u?'':'none';
+    if(!u||sub)return;sub=1;uid=u.uid;
+    if(/^guest/i.test(u.email||'')){askCode();return}
+    room=(await F.get(F.ref(db,'users/'+uid+'/room'))).val()||uid;
+    el('lkst').textContent=room==uid?'連携なし：このアカウントだけの舞台です':'連携中：'+room.slice(5);
+    F.onValue(R('config'),x=>{ready=true;applyCfg(x.val())},()=>{});F.onValue(R('live'),x=>applyLive(x.val()),()=>{});refList()});
 }
+
+// ===== 連携・共有・パスワード =====
+const lkcode=()=>el('lkc').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+el('lkon').onclick=async()=>{const c=lkcode();if(!c||LOCAL||VIEW)return;await F.set(F.ref(db,'users/'+uid+'/room'),'link_'+c);location.reload()};
+el('lkoff').onclick=async()=>{if(LOCAL||VIEW)return;await F.remove(F.ref(db,'users/'+uid+'/room'));location.reload()};
+const liveObj=()=>JSON.parse(JSON.stringify({A,B,M,S,SUB}));
+function showShare(){el('shurl').value=cfg.share?new URL('view.html',location.href).href.split('?')[0]+'?c='+cfg.share:''}
+el('shon').onclick=()=>{if(LOCAL||VIEW||cfg.share)return;cfg.share=Math.random().toString(36).slice(2,10);
+  F.update(F.ref(db),{['share/'+cfg.share+'/config']:cfgObj(),['share/'+cfg.share+'/live']:liveObj()}).catch(console.error);showShare();render()};
+el('shoff').onclick=()=>{if(!cfg.share)return;F.remove(F.ref(db,'share/'+cfg.share));cfg.share='';showShare();render()};
+const sha=async t=>{try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('sls:'+t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return btoa(unescape(encodeURIComponent(t)))}};
+const pwGet=async()=>LOCAL?lsG('pw'):(await F.get(F.ref(db,'users/'+uid+'/pw'))).val();
+const pwSet=async h=>LOCAL?wrt('pw',h):F.set(F.ref(db,'users/'+uid+'/pw'),h);
+function gate(){if(unlocked)return Promise.resolve(true);
+  return pwGet().then(h=>new Promise(res=>{const g=el('gate');g.style.display='flex';el('gp').value='';el('gm').textContent=h?'設定パスワードを入力してください':'設定パスワードを新しく決めてください（次回から必要です）';el('gp').focus();
+    const done=ok=>{g.style.display='none';res(ok)};
+    el('gok').onclick=async()=>{const v=el('gp').value;if(!v)return;const x=await sha(v);if(!h){await pwSet(x);unlocked=true;done(true)}else if(x===h){unlocked=true;done(true)}else el('gm').textContent='パスワードが違います'};
+    el('gp').onkeydown=e=>{if(e.key=='Enter')el('gok').click()};el('gcan').onclick=()=>done(false)}))}
+el('pwchg').onclick=async()=>{const v=prompt('新しい設定パスワード');if(v){await pwSet(await sha(v));alert('変更しました')}};
+
+// ===== 舞台上のオブジェクト（箱・人形・柱） =====
+const OK={box:'箱',doll:'人形',col:'柱'};
+const hx=c=>{const n=parseInt(c.slice(1),16);return[n>>16&255,n>>8&255,n&255].map(x=>x/255)};
+function drawObjs(){el('objs').innerHTML=[...objs].sort((a,b)=>a.d-b.d).map(o=>`<g id="o_${o.id}" data-id="${o.id}" style="cursor:move;touch-action:none"><g id="sh_${o.id}" clip-path="url(#fc)" filter="url(#b3)"><ellipse id="s0_${o.id}" fill="#000"/><polygon id="s1_${o.id}" fill="#000"/><polygon id="s2_${o.id}" fill="#000"/><polygon id="s3_${o.id}" fill="#000"/></g><polygon id="p1_${o.id}"/><polygon id="p2_${o.id}"/><polygon id="p3_${o.id}"/><ellipse id="e1_${o.id}"/></g>`).join('')}
+function lightAt(px,py){
+  const r={up:[0,0,0],fr:[0,0,0],L:[0,0,0],R:[0,0,0],bk:[0,0,0]},add=(k,c,w)=>{for(let q=0;q<3;q++)r[k][q]+=c[q]*w};
+  its.forEach(i=>{const L=lv(i);if(L<.005)return;const c=hx(col(i)),t=i.t;
+    if(t=='g')add('up',c,Math.exp(-(((px-i.x)/170)**2+((py-GY[i.b])/60)**2))*L*.5);
+    else if(t=='c')add('up',c,Math.max(0,1-Math.abs(px-i.x)/260)*L*.25);
+    else if(t=='f')add('fr',c,Math.max(0,1-Math.abs(px-i.x)/340)*cl((py-290)/50)*L*.5);
+    else if(t=='h')add('bk',c,L*.4);
+    else if(t=='s'){const f=fx[i.k],cx=i.lx+f.ax*1.6,cy=PY[i.b]+f.ay,rx=f.sz,w=Math.exp(-1.3*(((px-cx)/rx)**2+((py-cy)/(rx*.28))**2))*L*.9;add('up',c,w);add('fr',c,w*.3)}
+    else if(t=='x'){const s=i.s,d=s.side?-1:1,x0=s.side?752:48,y0=290+s.pos*115,th=s.ang*Math.PI/180,x1=x0+d*640*Math.cos(th),y1=y0+640*Math.sin(th)*.35,tt=(px-x0)/(x1-x0);
+      if(tt>0&&tt<1.05)add(s.side?'R':'L',c,Math.exp(-1.3*((py-(y0+(y1-y0)*tt))/(3+s.sz*tt))**2)*L*.7*(1-.35*tt))}});
+  if(pin&&pm)add('fr',[1,.97,.85],Math.exp(-(((px-pm.x)**2+(py-pm.y)**2)/8100))*.9);
+  return r}
+function renderObjs(){
+  const par=el('objs');[...objs].sort((a,b)=>a.d-b.d).forEach(o=>{const g=el('o_'+o.id);if(g)par.appendChild(g)});
+  const tm=x=>1-Math.exp(-1.5*x),lum=v=>(v[0]+v[1]+v[2])/3,base=[.8,.76,.7];
+  objs.forEach(o=>{if(!el('o_'+o.id))return;
+    const k=.5+o.d*.75,cx=o.x,cy=272+o.d*140,sd=cx<400?1:-1,z=o.s,id=o.id;
+    let H,W;if(o.kind=='box'){W=70*k*z;H=58*k*z}else if(o.kind=='doll'){H=110*k*z;W=.44*H}else{H=130*k*z;W=.3*H}
+    const Lg=lightAt(cx,cy),sh=(...ks)=>{const v=[0,0,0];ks.forEach(([key,w])=>{for(let q=0;q<3;q++)v[q]+=Lg[key][q]*w});return v};
+    const rgb=v=>o.lit?`rgb(${v.map((x,q)=>Math.round(255*base[q]*cl(.03+tm(x)))).join()})`:'rgb(38,36,34)';
+    const rim=`rgb(${Lg.bk.map(x=>Math.round(255*tm(x))).join()})`;
+    const P=(n,pts,f)=>{const e=el(n+'_'+id);e.setAttribute('points',pts.map(p=>p.join(',')).join(' '));e.setAttribute('fill',f);e.setAttribute('stroke',o.lit?rim:'none');e.setAttribute('stroke-width',1.5*k)};
+    const E=(cx_,cy_,rx,ry,f)=>{const e=el('e1_'+id);e.setAttribute('cx',cx_);e.setAttribute('cy',cy_);e.setAttribute('rx',rx);e.setAttribute('ry',ry);e.setAttribute('fill',f);e.setAttribute('stroke',o.lit?rim:'none');e.setAttribute('stroke-width',1.5*k)};
+    const none=[[0,0],[0,0],[0,0]],fr=rgb(sh(['fr',1],['up',.3],['L',.15],['R',.15]));
+    const lf=rgb(sh(['L',1],['fr',.7],['up',.25])),rt=rgb(sh(['R',1],['fr',.7],['up',.25])),up=rgb(sh(['up',1],['fr',.3]));
+    if(o.kind=='box'){const od=14*k*z,of=20*k*z*sd,h=W/2;
+      P('p1',[[cx-h,cy-H],[cx+h,cy-H],[cx+h,cy],[cx-h,cy]],fr);P('p2',[[cx-h,cy-H],[cx+h,cy-H],[cx+h+of,cy-H-od],[cx-h+of,cy-H-od]],up);
+      P('p3',[[cx+sd*h,cy-H],[cx+sd*h+of,cy-H-od],[cx+sd*h+of,cy-od],[cx+sd*h,cy]],sd>0?rt:lf);E(0,0,0,0,'none')}
+    else if(o.kind=='doll'){P('p1',[[cx-.17*H,cy-.72*H],[cx,cy-.72*H],[cx,cy],[cx-.22*H,cy]],lf);P('p2',[[cx,cy-.72*H],[cx+.17*H,cy-.72*H],[cx+.22*H,cy],[cx,cy]],rt);P('p3',none,'none');E(cx,cy-.86*H,.13*H,.13*H,rgb(sh(['up',1],['fr',.8])))}
+    else{P('p1',[[cx-W/2,cy-H],[cx,cy-H],[cx,cy],[cx-W/2,cy]],lf);P('p2',[[cx,cy-H],[cx+W/2,cy-H],[cx+W/2,cy],[cx,cy]],rt);P('p3',none,'none');E(cx,cy-H,W/2,W*.14,up)}
+    el('sh_'+id).style.display=o.sh?'':'none';
+    const S_=(n,pts,op)=>{const e=el(n+'_'+id);e.setAttribute('points',pts.map(p=>p.join(',')).join(' '));e.setAttribute('opacity',op)},h2=W/2,l1=H*.5,l2=H*1.1;
+    const e0=el('s0_'+id);e0.setAttribute('cx',cx);e0.setAttribute('cy',cy+2);e0.setAttribute('rx',W*.62);e0.setAttribute('ry',W*.19);e0.setAttribute('opacity',.55*tm(lum(Lg.up)*1.5));
+    S_('s1',[[cx-h2,cy],[cx+h2,cy],[cx+W*.55,cy-l1],[cx-W*.55,cy-l1]],.45*tm(lum(Lg.fr)*1.5));
+    S_('s2',[[cx-h2,cy-3],[cx-h2,cy+3],[cx+h2+l2,cy+3+l2*.06],[cx+h2+l2,cy-3-l2*.06]],.45*tm(lum(Lg.L)*1.5));
+    S_('s3',[[cx+h2,cy-3],[cx+h2,cy+3],[cx-h2-l2,cy+3+l2*.06],[cx-h2-l2,cy-3-l2*.06]],.45*tm(lum(Lg.R)*1.5))})}
+function buildObjPanel(){const p=el('objp');p.innerHTML='';
+  const bar=document.createElement('div');bar.className='bar';bar.innerHTML='<b>オブジェクト</b>'+Object.keys(OK).map(k=>`<button class="btn sub" data-add="${k}">＋${OK[k]}</button>`).join('')+'<span class="tag">舞台上でドラッグすると動かせます。奥にいくほど小さくなります</span>';
+  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{objs.push({id:Math.max(0,...objs.map(o=>o.id))+1,kind:b.dataset.add,x:400,d:.5,s:1,lit:1,sh:1});build()});p.appendChild(bar);
+  const w=document.createElement('div');w.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px';
+  objs.forEach((o,n)=>{const d=document.createElement('div');d.className='card';d.style.fontSize='12px';
+    d.innerHTML=`<div class="row" style="margin:0 0 6px"><b>${OK[o.kind]}${n+1}</b><button class="btn sub" style="margin-left:auto;padding:3px 10px">削除</button></div><div style="display:grid;grid-template-columns:52px 1fr;gap:6px;align-items:center;color:var(--mute)">大きさ<input type="range" min="30" max="250" value="${o.s*100}"></div><div class="row" style="margin:6px 0 0"><label style="min-width:0"><input type="checkbox" ${o.lit?'checked':''}> 光が当たる</label><label style="min-width:0"><input type="checkbox" ${o.sh?'checked':''}> 影</label></div>`;
+    const [rg,c1,c2]=d.querySelectorAll('input');rg.oninput=()=>{o.s=rg.value/100;render()};c1.onchange=()=>{o.lit=c1.checked?1:0;render()};c2.onchange=()=>{o.sh=c2.checked?1:0;render()};
+    d.querySelector('button').onclick=()=>{objs.splice(n,1);build()};w.appendChild(d)});p.appendChild(w)}
+let drag=null;
+const svgPt=e=>{const sv=el('stage'),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(sv.getScreenCTM().inverse())};
+el('objs').addEventListener('pointerdown',e=>{if(VIEW)return;const g=e.target.closest('g[data-id]');if(!g)return;const o=objs.find(x=>x.id==g.dataset.id),p=svgPt(e);drag={o,dx:o.x-p.x,dd:o.d-(p.y-272)/140};g.setPointerCapture(e.pointerId)});
+el('objs').addEventListener('pointermove',e=>{if(!drag)return;const p=svgPt(e);drag.o.x=cl(p.x+drag.dx,40,760);drag.o.d=cl((p.y-272)/140+drag.dd,0,1);render()});
+el('objs').addEventListener('pointerup',()=>drag=null);
 if(LOCAL){const c=lsG('config');if(c)loadCfg(c)}
 build();syncInputs();
 let ZZ=+(lsG('zoom')||1);const ZM=document.querySelector('main');
