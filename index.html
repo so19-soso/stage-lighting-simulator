@@ -325,6 +325,7 @@ const LOCAL=FBC.apiKey.startsWith('YOUR'),G='https://www.gstatic.com/firebasejs/
 const me=Math.random().toString(36).slice(2);
 let VIEW=!!window.VIEWONLY,room='',uid='',code='',unlocked=false,HAS=LOCAL,tab='stage',ready=LOCAL,lastCfg='',ct=0,tm=0,off=0,hb=0,rt=0,auth,db,F={};
 const S={},SUB={},FD=[],LD=[],q={},objs=[];
+const PP=p=>p.startsWith('saves/')?p:RB()+'/'+p;
 const RB=()=>VIEW?`share/${code}`:`rooms/${room}`,R=p=>F.ref(db,RB()+'/'+p);
 function ssName(s){return (s.name||'').trim()||`SS${s.side?'上':'下'}${s.pos<.34?'奥':s.pos>.66?'前':'中'}`}
 const sj=o=>JSON.stringify(o,(k,v)=>v&&typeof v=='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
@@ -333,8 +334,8 @@ const pl=i=>{const n=cfg.num[i.k];return cl((A[n]||0)*M.a+(B[n]||0)*M.b)};
 const lv=i=>{let v=pl(i);for(const j in SUB){const x=SUB[j]&&SUB[j][i.k];if(x)v=Math.max(v,x*(S[j]||0))}return v};
 const snap=()=>{const o={};its.forEach(i=>{const v=pl(i);if(v>.01)o[i.k]=+v.toFixed(2)});return o};
 const lsG=p=>{try{return JSON.parse(localStorage.getItem('sls:'+p))}catch(e){return null}};
-const wrt=(p,v)=>{if(LOCAL){try{localStorage.setItem('sls:'+p,JSON.stringify(v))}catch(e){}return}if(VIEW)return;const u={[RB()+'/'+p]:v};if(cfg.share&&p=='config')u['share/'+cfg.share+'/config']=v;return F.update(F.ref(db),u).catch(console.error)};
-const rd=async p=>LOCAL?lsG(p):(await F.get(R(p))).val();
+const wrt=(p,v)=>{if(LOCAL){try{localStorage.setItem('sls:'+p,JSON.stringify(v))}catch(e){}return}if(VIEW)return;const u={[PP(p)]:v};if(cfg.share&&p=='config')u['share/'+cfg.share+'/config']=v;return F.update(F.ref(db),u).catch(console.error)};
+const rd=async p=>LOCAL?lsG(p):(await F.get(F.ref(db,PP(p)))).val();
 const sNow=()=>Date.now()+off;
 function push(p,v){q[p]=v;if(LOCAL||VIEW||tm)return;tm=setTimeout(()=>{tm=0;const u={};for(const k in q){u[RB()+'/'+k]=q[k];if(cfg.share)u['share/'+cfg.share+'/'+k]=q[k];delete q[k]}F.update(F.ref(db),u).catch(console.error)},60)}
 const cpo=(d,sr)=>{for(const k in d)delete d[k];Object.assign(d,sr||{})};
@@ -368,7 +369,7 @@ function releaseLock(){clearInterval(hb);clearTimeout(rt);if(HAS&&!LOCAL)F.remov
 addEventListener('pagehide',()=>{if(HAS&&!LOCAL)F.remove(R('lock'))});
 // 保存・呼び出し
 const sn=()=>(el('svn').value||'').trim().replace(/[.$#\[\]\/]/g,'_');
-async function svSet(k,n,val){const o=(await rd('saves/'+k))||{};if(val===null)delete o[n];else o[n]=val;await wrt('saves/'+k,Object.keys(o).length?o:null)}
+async function svSet(k,n,val){if(!LOCAL)return wrt('saves/'+k+'/'+n,val);const o=(await rd('saves/'+k))||{};if(val===null)delete o[n];else o[n]=val;await wrt('saves/'+k,Object.keys(o).length?o:null)}
 async function refList(){const sel=el('svl');sel.innerHTML='';
   for(const [k,l] of [['venue','会場'],['sub','サブマスター']]){const o=(await rd('saves/'+k))||{};Object.keys(o).forEach(n=>sel.insertAdjacentHTML('beforeend',`<option value="${k}|${n}">${l}：${n}</option>`))}}
 el('sv1').onclick=async()=>{const n=sn();if(!n)return;await svSet('venue',n,JSON.stringify(cfgObj()));refList()};
