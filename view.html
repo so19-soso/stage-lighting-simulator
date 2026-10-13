@@ -376,7 +376,7 @@ el('sv1').onclick=async()=>{const n=sn();if(!n)return;await svSet('venue',n,JSON
 el('sv2').onclick=async()=>{const n=sn();if(!n)return;await svSet('sub',n,JSON.stringify(SUB));refList()};
 el('dl').onclick=async()=>{const [k,n]=el('svl').value.split('|');if(!k)return;await svSet(k,n,null);refList()};
 el('ld').onclick=async()=>{const [k,n]=el('svl').value.split('|');if(!k)return;const o=(await rd('saves/'+k))||{};if(!o[n])return;const d=JSON.parse(o[n]);
-  if(k=='venue'){loadCfg(d);lastCfg='';build();syncInputs()}else{cpo(SUB,d);push('live/SUB',d);buildFaders();render()}};
+  if(k=='venue'){const sh=cfg.share;loadCfg(d);cfg.share=sh;lastCfg='';build();syncInputs()}else{cpo(SUB,d);push('live/SUB',d);buildFaders();render()}};
 async function start(){
   el('stat').textContent=LOCAL?'Firebase未設定のため、この端末だけで動くローカルモードです（README参照）':'';
   showLock();
