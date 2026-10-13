@@ -201,7 +201,7 @@ function mkItems(){
   ssList.forEach(s=>it.push({k:'ss'+s.id,t:'x',s,get sn(){return ssName(s)},get cat(){return ssName(s)}}));
   return it;
 }
-function slots(){const m={};its.forEach(i=>(m[cfg.num[i.k]]=m[cfg.num[i.k]]||[]).push(i));
+function slots(){const m={};its.filter(i=>cfg.num[i.k]>0).forEach(i=>(m[cfg.num[i.k]]=m[cfg.num[i.k]]||[]).push(i));
   return Object.keys(m).map(Number).sort((a,b)=>a-b).map(n=>({n,its:m[n]}))}
 function lab(s){const a=s.its;let h;
   if(a.length==1)h=a[0].cat;
@@ -256,7 +256,7 @@ function buildSettings(){
   sus.forEach(c=>{const r=document.createElement('div');r.className='row';r.innerHTML=`<label data-nm="${c.k}" data-m="p">${c.sn}（${c.b+1}サス）</label>`;
     const p=document.createElement('span');p.className='row';p.style.margin=0;pal(p,fx[c.k].col,v=>{fx[c.k].col=v;render()});r.appendChild(p);tl.appendChild(r)});
   const nl=el('numl');nl.innerHTML='';
-  its.forEach(c=>{const d=document.createElement('div');d.innerHTML=`<span data-nm="${c.k}" data-m="c">${c.cat.replace('<br>',' ')}</span><select>${NO}</select>`;
+  its.forEach(c=>{const d=document.createElement('div');d.innerHTML=`<span data-nm="${c.k}" data-m="c">${c.cat.replace('<br>',' ')}</span><select><option value="-1">なし</option>${NO}</select>`;
     const s=d.querySelector('select');s.value=cfg.num[c.k];s.onchange=()=>{cfg.num[c.k]=+s.value;buildFaders();render()};nl.appendChild(d)});
   const tp=el('tanp');tp.innerHTML='';
   sus.forEach(c=>{const f=fx[c.k],d=document.createElement('div');d.className='card';
@@ -277,7 +277,7 @@ function buildSettings(){
 }
 function build(){
   its=mkItems();let m=Math.max(0,...Object.values(cfg.num));
-  its.forEach(i=>{if(!cfg.num[i.k]){const o=i.sh&&its.find(x=>x.sh==i.sh&&cfg.num[x.k]);cfg.num[i.k]=o?cfg.num[o.k]:++m}});
+  its.forEach(i=>{if(cfg.num[i.k]==null){const o=i.sh&&its.find(x=>x.sh==i.sh&&cfg.num[x.k]);cfg.num[i.k]=o?cfg.num[o.k]:++m}});
   drawStage();drawObjs();buildFaders();buildSettings();buildObjPanel();render();
 }
 
