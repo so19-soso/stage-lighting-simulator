@@ -87,7 +87,6 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
 </header>
 <div class="note" id="stat"></div>
 <div id="login"><div class="card"><h2>ログイン</h2><div class="row"><label>ID</label><input type="text" id="lid" autocomplete="username"></div><div class="row"><label>パスワード</label><input type="password" id="lpw" autocomplete="current-password"></div><div class="row"><button class="btn" id="lgo">ログイン</button></div><div class="tag" id="lerr"></div></div></div>
-<div id="gate"><div class="card"><h2>設定パスワード</h2><div class="tag" id="gm"></div><div class="row"><input type="password" id="gp"></div><div class="row"><button class="btn" id="gok">OK</button><button class="btn sub" id="gcan">キャンセル</button></div></div></div>
 <div id="vcode"><div class="card"><h2>閲覧コード</h2><div class="tag">操作する人に教えてもらったコードを入れてください</div><div class="row"><input type="text" id="vc"><button class="btn" id="vgo">見る</button></div></div></div>
 <main>
 
@@ -157,7 +156,6 @@ input[type=color]{width:30px;height:28px;padding:0;border:1px solid var(--line);
       <div class="row"><button class="btn" id="shon">共有を開始</button><button class="btn sub" id="shoff">停止</button></div>
       <div class="row"><input type="text" id="shurl" readonly style="width:100%"></div>
       <div class="tag">開始すると、見るだけのURLが出ます。IDが guest で始まるアカウントも、このコードで見られます</div></div>
-    <div class="card"><h2>設定パスワード</h2><div class="row"><button class="btn sub" id="pwchg">パスワードを変更</button></div></div>
     <div class="card"><h2>保存・呼び出し</h2>
       <div class="row"><label>名前</label><input type="text" id="svn" placeholder="例：市民ホール 大ホール"></div>
       <div class="row"><button class="btn" id="sv1">会場設定を保存</button><button class="btn" id="sv2">サブマスターを保存</button></div>
@@ -299,7 +297,7 @@ function render(){
   saveCfgMaybe();
 }
 
-document.querySelectorAll('#nav button').forEach(b=>b.onclick=async()=>{if(b.dataset.t=='setup'&&!(await gate()))return;
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t+'-s'));tab=b.dataset.t;if(tab=='fader')takeLock();else releaseLock();showLock()});
 document.querySelectorAll('#nb button').forEach((b,i)=>b.onclick=()=>{
@@ -415,15 +413,6 @@ function showShare(){el('shurl').value=cfg.share?new URL('view.html',location.hr
 el('shon').onclick=()=>{if(LOCAL||VIEW||cfg.share)return;cfg.share=Math.random().toString(36).slice(2,10);
   F.update(F.ref(db),{['share/'+cfg.share+'/config']:cfgObj(),['share/'+cfg.share+'/live']:liveObj()}).catch(console.error);showShare();render()};
 el('shoff').onclick=()=>{if(!cfg.share)return;F.remove(F.ref(db,'share/'+cfg.share));cfg.share='';showShare();render()};
-const sha=async t=>{try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('sls:'+t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return btoa(unescape(encodeURIComponent(t)))}};
-const pwGet=async()=>LOCAL?lsG('pw'):(await F.get(F.ref(db,'users/'+uid+'/pw'))).val();
-const pwSet=async h=>LOCAL?wrt('pw',h):F.set(F.ref(db,'users/'+uid+'/pw'),h);
-function gate(){if(unlocked)return Promise.resolve(true);
-  return pwGet().then(h=>new Promise(res=>{const g=el('gate');g.style.display='flex';el('gp').value='';el('gm').textContent=h?'設定パスワードを入力してください':'設定パスワードを新しく決めてください（次回から必要です）';el('gp').focus();
-    const done=ok=>{g.style.display='none';res(ok)};
-    el('gok').onclick=async()=>{const v=el('gp').value;if(!v)return;const x=await sha(v);if(!h){await pwSet(x);unlocked=true;done(true)}else if(x===h){unlocked=true;done(true)}else el('gm').textContent='パスワードが違います'};
-    el('gp').onkeydown=e=>{if(e.key=='Enter')el('gok').click()};el('gcan').onclick=()=>done(false)}))}
-el('pwchg').onclick=async()=>{const v=prompt('新しい設定パスワード');if(v){await pwSet(await sha(v));alert('変更しました')}};
 
 // ===== 舞台上のオブジェクト（箱・人形・柱） =====
 const OK={box:'箱',doll:'人形',col:'柱'};
